@@ -1,0 +1,15 @@
+**/.idea
+**/.coverage
+**/__pycache__
+/.venv
+**/htmlcov
+**/.pytest_cache
+/KFC_java/target
+**.egg-info
+**/.vs
+KFC_Cpp/out
+KFC_Cpp/OpenCV_451
+KFC_Cpp/build
+KFC_AnimationUtils/videos
+KFC_AnimationUtils/frames
+KFC_AnimationUtils/sprites

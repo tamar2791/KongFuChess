@@ -1,0 +1,59 @@
+#include "OpenCvImg.hpp"
+
+
+#include <opencv2/opencv.hpp>
+#include <stdexcept>
+#include <vector>
+
+struct OpenCvImg::Impl {
+	cv::Mat mat;
+};
+
+OpenCvImg::OpenCvImg() : impl(std::make_unique<Impl>()) {}
+OpenCvImg::~OpenCvImg() = default;
+ImgPtr OpenCvImg::clone() const
+{
+	auto res = std::make_shared<OpenCvImg>();
+	res->impl->mat = this->impl->mat.clone();
+	return res;
+}
+
+void OpenCvImg::read(const std::string& path, const std::pair<int, int>& size) {
+	impl->mat = cv::imread(path, cv::IMREAD_UNCHANGED);
+	if (impl->mat.empty()) throw std::runtime_error("Cannot load image: " + path);
+	if (size.first > 0 && size.second > 0) {
+		cv::resize(impl->mat, impl->mat, cv::Size(size.first, size.second));
+	}
+}
+
+std::pair<int,int> OpenCvImg::size() const {
+	return {impl->mat.cols, impl->mat.rows};
+}
+
+void OpenCvImg::create_blank(int w, int h) {
+	impl->mat = cv::Mat(h, w, CV_8UC4, cv::Scalar(0, 0, 0, 0));
+}
+
+void OpenCvImg::draw_on(Img& dst, int x, int y) {
+	auto* cvDst = dynamic_cast<OpenCvImg*>(&dst);
+	if (!cvDst) return;
+	if (impl->mat.empty()) return;
+	impl->mat.copyTo(cvDst->impl->mat(cv::Rect(x, y, impl->mat.cols, impl->mat.rows)));
+}
+
+void OpenCvImg::put_text(const std::string& txt, int x, int y, double font_size) {
+	if (impl->mat.empty()) return;
+	cv::putText(impl->mat, txt, cv::Point(x, y), cv::FONT_HERSHEY_SIMPLEX, font_size, cv::Scalar(255, 255, 255, 255));
+}
+
+void OpenCvImg::show() const {
+	if (impl->mat.empty()) return;
+	cv::imshow("Image", impl->mat);
+	cv::waitKey(1);
+}
+
+void OpenCvImg::draw_rect(int x, int y, int width, int height, const std::vector<uint8_t> & color) {
+	if (impl->mat.empty()) return;
+	cv::Scalar cvColor = color.size() == 3 ? cv::Scalar(color[0], color[1], color[2]) : cv::Scalar(color[0], color[1], color[2], color[3]);
+	cv::rectangle(impl->mat, cv::Rect(x, y, width, height), cvColor, -1);
+}
