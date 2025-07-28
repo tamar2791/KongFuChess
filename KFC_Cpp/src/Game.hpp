@@ -284,7 +284,7 @@ inline Game create_game(const std::string &pieces_root,
     GraphicsFactory gfx_factory(img_factory);
     fs::path root = fs::path(pieces_root);
     fs::path board_csv = root / "board.csv";
-    std::cout << "Loading game from: " << board_csv << std::endl;
+    //std::cout << "Loading game from: " << board_csv << std::endl;
     std::ifstream in(board_csv);
     if (!in)
     {
@@ -310,7 +310,7 @@ inline Game create_game(const std::string &pieces_root,
         {
             if (!cell.empty())
             {
-                auto piece = pf.create_piece(cell, {row, col});
+                auto piece = pf.create_piece(cell, {col, row});
                 out.push_back(piece);
             }
             ++col;

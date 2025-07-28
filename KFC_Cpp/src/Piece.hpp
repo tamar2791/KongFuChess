@@ -30,7 +30,7 @@ public:
 
 	void reset(int start_ms) {
 		auto cell = this->current_cell();
-		state->reset(Command{ start_ms,id,"Idle",{cell} });
+		state->reset(Command{ start_ms,id,"idle",{cell} });
 	}
 
 	void update(int now_ms) {
