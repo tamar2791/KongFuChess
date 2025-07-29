@@ -10,7 +10,9 @@
 #include <atomic>
 #include <chrono>
 #include <mutex>
+#include <queue>
 #include <utility>  // בשביל std::pair
+#include <opencv2/opencv.hpp>
 #include "Game.hpp"
 #include "Piece.hpp"
 
@@ -82,17 +84,18 @@ public:
 
 private:
     void run() {
-        // זהו thread שמדמה keyboard polling
-        // במציאות כאן יהיה integration עם ספריית UI או system hooks
         while (running.load()) {
             // בדוק אם יש מקשים מדומים
             process_simulated_keys();
             
-            // במציאות כאן תוסיף:
-            // - OpenCV waitKey() polling (הכי פשוט)
-            // - SFML event polling (יותר מתקדם)
-            // - Win32 keyboard hooks
-            // - Linux input device polling
+            // קלט מקלדת אמיתי באמצעות OpenCV
+            int key = cv::waitKey(1) & 0xFF;
+            if (key != 255) { // 255 = no key pressed
+                std::string key_str = convert_opencv_key_to_string(key);
+                if (!key_str.empty()) {
+                    handle_key_event_internal(key_str);
+                }
+            }
             
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
@@ -224,54 +227,34 @@ private:
         std::cout << "[INFO] Player " << player << " queued jump: " << cmd << std::endl;
     }
 
+    std::string convert_opencv_key_to_string(int key) {
+        switch (key) {
+            case 27: return "esc";
+            case 13: return "enter";
+            case 32: return " ";
+            case 43: return "+";
+            case 45: return "-";
+            // חצי כיוון
+            case 0: return "up";    // חץ עליון
+            case 1: return "down";  // חץ תחתון
+            case 2: return "left";  // חץ שמאל
+            case 3: return "right"; // חץ ימין
+            // אותיות רגילות
+            default:
+                if (key >= 'a' && key <= 'z') {
+                    return std::string(1, (char)key);
+                }
+                if (key >= 'A' && key <= 'Z') {
+                    return std::string(1, (char)(key + 32)); // המרה לאות קטנה
+                }
+                return "";
+        }
+    }
+    
     int get_current_time_ms() {
-        // זמן מהתחלת התוכנית - מתאים למה שמשתמש במחלקת Game
         static auto start_time = std::chrono::steady_clock::now();
         auto now = std::chrono::steady_clock::now();
         auto duration = now - start_time;
         return static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(duration).count());
     }
 };
-
-// דוגמה לשימוש (בקובץ נפרד או בtests):
-/*
-void example_usage() {
-    // יצירת keymap לשחקן 1
-    std::unordered_map<std::string, std::string> p1_keymap = {
-        {"up", "up"}, {"down", "down"}, {"left", "left"}, {"right", "right"},
-        {"enter", "select"}, {"+", "jump"}
-    };
-    
-    // יצירת processor
-    KeyboardProcessor processor(8, 8, p1_keymap);
-    
-    // יצירת תור פקודות ומutex
-    std::vector<Command> command_queue;
-    std::mutex queue_mutex;
-    
-    // יצירת producer
-    KeyboardProducer producer(command_queue, queue_mutex, processor, 1);
-    
-    producer.start();
-    
-    // דמוי אירועי מקלדת
-    producer.simulate_key("enter");  // select
-    producer.simulate_key("down");   // move cursor
-    producer.simulate_key("enter");  // select again (move)
-    
-    // המתן קצת שהthread יעבד
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    
-    // קריאת פקודות מהתור
-    {
-        std::lock_guard<std::mutex> lock(queue_mutex);
-        while (!command_queue.empty()) {
-            Command cmd = command_queue.back();
-            command_queue.pop_back();
-            std::cout << "Processing: " << cmd << std::endl;
-        }
-    }
-    
-    producer.stop();
-}
-*/

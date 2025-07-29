@@ -73,5 +73,5 @@ void OpenCvImg::show() const {
 void OpenCvImg::draw_rect(int x, int y, int width, int height, const std::vector<uint8_t> & color) {
 	if (impl->mat.empty()) return;
 	cv::Scalar cvColor = color.size() == 3 ? cv::Scalar(color[0], color[1], color[2]) : cv::Scalar(color[0], color[1], color[2], color[3]);
-	cv::rectangle(impl->mat, cv::Rect(x, y, width, height), cvColor, -1);
+	cv::rectangle(impl->mat, cv::Rect(x, y, width, height), cvColor, 2);
 }

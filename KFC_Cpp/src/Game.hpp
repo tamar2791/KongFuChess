@@ -147,6 +147,13 @@ inline void Game::start_user_input_thread()
         {"w", "up"}, {"s", "down"}, {"a", "left"}, {"d", "right"}, {"f", "select"}, {"g", "jump"}};
     kp1 = std::make_shared<KeyboardProcessor>(board.H_cells, board.W_cells, p1_map);
     kp2 = std::make_shared<KeyboardProcessor>(board.H_cells, board.W_cells, p2_map);
+    
+    // אתחול מיקום התחלתי שונה לכל שחקן
+    kp1->process_key(""); // שחקן 1 נשאר ב-(0,0)
+    // הזז את שחקן 2 לשורה התחתונה
+    for(int i = 0; i < 7; i++) {
+        kp2->process_key("s"); // down
+    }
 
     // start the keyboard producers (with player number)
     kb_prod_1 = std::make_shared<KeyboardProducer>(
