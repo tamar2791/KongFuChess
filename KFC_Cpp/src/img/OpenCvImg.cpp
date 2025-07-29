@@ -38,7 +38,25 @@ void OpenCvImg::draw_on(Img& dst, int x, int y) {
 	auto* cvDst = dynamic_cast<OpenCvImg*>(&dst);
 	if (!cvDst) return;
 	if (impl->mat.empty()) return;
-	impl->mat.copyTo(cvDst->impl->mat(cv::Rect(x, y, impl->mat.cols, impl->mat.rows)));
+	
+	// בדיקת גבולות
+	if (x < 0 || y < 0 || x + impl->mat.cols > cvDst->impl->mat.cols || y + impl->mat.rows > cvDst->impl->mat.rows) {
+		return;
+	}
+	
+	cv::Mat src = impl->mat;
+	cv::Mat& dstMat = cvDst->impl->mat;
+	
+	// וידוא שלשתי התמונות יש אותו מספר ערוצים
+	if (src.channels() != dstMat.channels()) {
+		if (src.channels() == 3 && dstMat.channels() == 4) {
+			cv::cvtColor(src, src, cv::COLOR_BGR2BGRA);
+		} else if (src.channels() == 4 && dstMat.channels() == 3) {
+			cv::cvtColor(src, src, cv::COLOR_BGRA2BGR);
+		}
+	}
+	
+	src.copyTo(dstMat(cv::Rect(x, y, src.cols, src.rows)));
 }
 
 void OpenCvImg::put_text(const std::string& txt, int x, int y, double font_size) {

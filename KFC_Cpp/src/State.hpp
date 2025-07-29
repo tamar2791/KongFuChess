@@ -10,6 +10,7 @@
 #include <cctype>
 #include <utility>
 #include <vector>
+#include <iostream>
 
 class State : public std::enable_shared_from_this<State> {
 public:
@@ -35,10 +36,29 @@ public:
     std::shared_ptr<State> on_command(const Command& cmd,Cell2Pieces& c) {
         std::string key = cmd.type;
         for(auto& ch : key) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+        
         auto it = transitions.find(key);
         if(it != transitions.end()) {
             auto next = it->second;
-            if(next) {
+            if(next && key == "move" && cmd.params.size() >= 2) {
+                // Validate move using Moves class
+                if(!moves) {
+                    next->reset(cmd);
+                    return next;
+                }
+                std::unordered_set<std::pair<int,int>, PairHash> occupied_cells;
+                for(const auto& kv : c) {
+                    if(!kv.second.empty()) {
+                        occupied_cells.insert(kv.first);
+                    }
+                }
+                if(moves->is_valid(cmd.params[0], cmd.params[1], occupied_cells, physics->is_need_clear_path())) {
+                    next->reset(cmd);
+                    return next;
+                }
+                // Invalid move - stay in current state
+                return shared_from_this();
+            } else if(next) {
                 next->reset(cmd);
                 return next;
             }

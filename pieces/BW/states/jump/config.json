@@ -4,7 +4,7 @@
     "is_loop": true
   },
   "physics": {
-    "speed_m_per_sec": 1.2,
-    "next_state_when_finished": "short_rest"
+    "speed_m_per_sec": 1.2
+    
   }
 }

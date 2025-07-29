@@ -25,8 +25,21 @@ public:
 	}
 
 	void reset(int start_ms) {
-		auto cell = this->current_cell();
-		state->reset(Command{ start_ms,id,"idle",{cell} });
+		// Extract position from piece ID (e.g., "PW_(6,6)" -> {6,6})
+		std::string id_str = id;
+		size_t pos = id_str.find("_(");
+		if (pos != std::string::npos) {
+			std::string coords = id_str.substr(pos + 2);
+			size_t comma = coords.find(',');
+			if (comma != std::string::npos) {
+				int x = std::stoi(coords.substr(0, comma));
+				int y = std::stoi(coords.substr(comma + 1, coords.find(')') - comma - 1));
+				state->reset(Command{ start_ms, id, "idle", {{x, y}} });
+				return;
+			}
+		}
+		// Fallback
+		state->reset(Command{ start_ms, id, "idle", {{0, 0}} });
 	}
 
 	void update(int now_ms,Cell2Pieces& c) {

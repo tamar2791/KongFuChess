@@ -114,6 +114,5 @@ std::pair<int, int> Board::m_to_pix(const std::pair<double, double> &pos_m) cons
     int x_px = static_cast<int>(std::round((x_m / cell_W_m) * cell_W_pix));
     int y_px = static_cast<int>(std::round((y_m / cell_H_m) * cell_H_pix));
 
-    // החזרה במבנה (y, x) כפי שהטסט מצפה
-    return {y_px, x_px};
+    return {x_px, y_px};
 }

@@ -45,7 +45,7 @@ struct PlayerData
 {
     int player;
     std::shared_ptr<KeyboardProcessor> kp;
-    std::shared_ptr<std::pair<int, int>> last_cursor;
+    std::pair<int, int> *last_cursor; // שינוי: pointer רגיל במקום shared_ptr
 
     PlayerData(int p, std::shared_ptr<KeyboardProcessor> k, std::pair<int, int> *l)
         : player(p), kp(k), last_cursor(l) {}
@@ -126,13 +126,15 @@ inline void Game::run(int num_iterations, bool is_with_graphics)
     start_user_input_thread();
     int start_ms = game_time_ms();
     for (auto &p : pieces)
+    {
         p->reset(start_ms);
+    }
 
     run_game_loop(num_iterations, is_with_graphics);
 
     announce_win();
     int x = 0;
-    //std::cin >> x;
+    // std::cin >> x;
 }
 
 inline void Game::start_user_input_thread()
@@ -163,20 +165,20 @@ inline void Game::run_game_loop(int num_iterations, bool is_with_graphics)
     {
         int now = game_time_ms();
         for (auto &p : pieces)
-            p->update(now,pos);
+            p->update(now, pos);
 
         update_cell2piece_map();
 
         while (!user_input_queue.empty())
         {
-            auto cmd = user_input_queue.back();
-            user_input_queue.pop_back();
+            auto cmd = user_input_queue.front();
+            user_input_queue.erase(user_input_queue.begin());
             process_input(cmd);
         }
 
         if (is_with_graphics)
         {
-            board.show();
+            _draw();
         }
 
         resolve_collisions();
@@ -188,7 +190,7 @@ inline void Game::run_game_loop(int num_iterations, bool is_with_graphics)
                 return;
         }
         /* idle to mimic frame pacing */
-        //std::cout << "DEBUG" << std::endl;
+        // std::cout << "DEBUG" << std::endl;
     }
     if (is_with_graphics)
     {
@@ -216,6 +218,8 @@ inline void Game::process_input(const Command &cmd)
 inline void Game::resolve_collisions()
 {
     update_cell2piece_map();
+    std::vector<PiecePtr> to_remove;
+
     for (const auto &kv : pos)
     {
         const auto &plist = kv.second;
@@ -232,9 +236,14 @@ inline void Game::resolve_collisions()
                 continue;
             if (p->state->can_be_captured())
             {
-                pieces.erase(std::remove(pieces.begin(), pieces.end(), p), pieces.end());
+                to_remove.push_back(p);
             }
         }
+    }
+
+    for (const auto &p : to_remove)
+    {
+        pieces.erase(std::remove(pieces.begin(), pieces.end(), p), pieces.end());
     }
 }
 
@@ -284,14 +293,14 @@ inline void Game::enqueue_command(const Command &cmd)
 inline Game create_game(const std::string &pieces_root,
                         const ImgFactoryPtr &img_factory)
 {
-    //std::cout << "=== DEBUG: Creating game ===" << std::endl;
-    //std::cout << "Pieces root: " << pieces_root << std::endl;
+    // std::cout << "=== DEBUG: Creating game ===" << std::endl;
+    // std::cout << "Pieces root: " << pieces_root << std::endl;
     GraphicsFactory gfx_factory(img_factory);
     fs::path root = fs::path(pieces_root);
     fs::path board_csv = root / "board.csv";
     // בדיקת קיום קבצים
-    //std::cout << "Board CSV path: " << board_csv.string() << std::endl;
-    //std::cout << "Board CSV exists: " << fs::exists(board_csv) << std::endl;
+    // std::cout << "Board CSV path: " << board_csv.string() << std::endl;
+    // std::cout << "Board CSV exists: " << fs::exists(board_csv) << std::endl;
 
     std::ifstream in(board_csv);
     if (!in)
@@ -300,44 +309,48 @@ inline Game create_game(const std::string &pieces_root,
         throw std::runtime_error("Cannot open board.csv");
     }
     fs::path board_png = root / "board.png";
-    //std::cout << "Board PNG path: " << board_png.string() << std::endl;
-    //std::cout << "Board PNG exists: " << fs::exists(board_png) << std::endl;
 
-    auto board_img = img_factory->load(board_png.string());
-    Board board(32, 32, 8, 8, board_img);
+    auto board_img = img_factory->load(board_png.string(), {512, 512});
+    Board board(64, 64, 8, 8, board_img, 1.0, 1.0);
 
     PieceFactory pf(board, pieces_root, gfx_factory);
     std::vector<PiecePtr> out;
 
     std::string line;
     int row = 0;
-    //std::cout << "=== Reading board.csv ===" << std::endl;
+    // std::cout << "=== Reading board.csv ===" << std::endl;
     while (std::getline(in, line))
     {
-        //std::cout << "Line " << row << ": '" << line << "'" << std::endl;
+        // std::cout << "Line " << row << ": '" << line << "'" << std::endl;
 
         std::stringstream ss(line);
         std::string cell;
         int col = 0;
         while (std::getline(ss, cell, ','))
         {
-            //std::cout << "Line " << row << ": '" << line << "'" << std::endl;
-            // הסרת רווחים מיותרים
+            // std::cout << "Line " << row << ": '" << line << "'" << std::endl;
+            //  הסרת רווחים מיותרים
             cell.erase(0, cell.find_first_not_of(" \t\r\n"));
             cell.erase(cell.find_last_not_of(" \t\r\n") + 1);
 
             if (!cell.empty())
             {
-                //std::cout << "  Creating piece: '" << cell << "' at (" << col << "," << row << ")" << std::endl;
-                try {
+                // std::cout << "  Creating piece: '" << cell << "' at (" << col << "," << row << ")" << std::endl;
+                try
+                {
                     auto piece = pf.create_piece(cell, {col, row});
-                    if (piece) {
-                        //std::cout << "    SUCCESS: Created piece with ID: " << piece->id << std::endl;
+                    if (piece)
+                    {
+                        // std::cout << "    SUCCESS: Created piece with ID: " << piece->id << std::endl;
                         out.push_back(piece);
-                    } else {
+                    }
+                    else
+                    {
                         std::cout << "    ERROR: create_piece returned nullptr for '" << cell << "'" << std::endl;
                     }
-                } catch (const std::exception& e) {
+                }
+                catch (const std::exception &e)
+                {
                     std::cout << "    EXCEPTION: " << e.what() << std::endl;
                 }
             }
@@ -353,45 +366,47 @@ inline void Game::_draw()
     for (const auto &p : pieces)
     {
         p->draw_on_board(display_board, game_time_ms());
-        if (kp1 && kp2)
+    }
+
+    if (kp1 && kp2)
+    {
+        std::vector<PlayerData> players = {
+            PlayerData{1, kp1, &last_cursor1},
+            PlayerData{2, kp2, &last_cursor2}};
+
+        for (const auto &data : players)
         {
-            std::vector<PlayerData> players = {
-                PlayerData{1, kp1, &last_cursor1},
-                PlayerData{2, kp2, &last_cursor2}};
+            int player = data.player;
+            std::shared_ptr<KeyboardProcessor> kp = data.kp;
+            std::pair<int, int> *last = data.last_cursor; // שינוי כאן - pointer רגיל
 
-            for (const auto &data : players)
+            // קבלת מיקום הסמן
+            std::pair<int, int> pos = kp->get_cursor();
+            int r = pos.first;
+            int c = pos.second;
+
+            // חישוב גבולות המלבן
+            int y1 = r * board.cell_H_pix;
+            int x1 = c * board.cell_W_pix;
+            int y2 = y1 + board.cell_H_pix - 1;
+            int x2 = x1 + board.cell_W_pix - 1;
+
+            // צבע לפי שחקן
+            std::vector<uint8_t> color = (player == 1) ? std::vector<uint8_t>{0, 255, 0} : // ירוק לשחקן 1
+                                             std::vector<uint8_t>{0, 0, 255};              // כחול לשחקן 2
+
+            // חישוב רוחב וגובה
+            int width = x2 - x1 + 1;
+            int height = y2 - y1 + 1;
+
+            // ציור המלבן
+            display_board.img->draw_rect(x1, y1, width, height, color);
+
+            // הדפסת לוג רק אם הסמן השתנה
+            if (*last != pos)
             {
-                int player = data.player;
-                std::shared_ptr<KeyboardProcessor> kp = data.kp;
-                std::shared_ptr<std::pair<int, int>> last = data.last_cursor;
-
-                // קבלת מיקום הסמן
-                std::pair<int, int> pos = kp->get_cursor();
-                int r = pos.first;
-                int c = pos.second;
-
-                // חישוב גבולות המלבן
-                int y1 = r * board.cell_H_pix;
-                int x1 = c * board.cell_W_pix;
-                int y2 = y1 + board.cell_H_pix - 1;
-                int x2 = x1 + board.cell_W_pix - 1;
-
-                // צבע לפי שחקן
-                std::vector<uint8_t> color = (player == 1) ? std::vector<uint8_t>{0, 255, 0} : // ירוק לשחקן 1
-                                                 std::vector<uint8_t>{0, 0, 255};              // כחול לשחקן 2 (במקום אדום)
-
-                // חישוב רוחב וגובה
-                int width = x2 - x1 + 1;
-                int height = y2 - y1 + 1;
-
-                // ציור המלבן
-                board.img->draw_rect(x1, y1, width, height, color);
-                // הדפסת לוג רק אם הסמן השתנה
-                if (*last != pos)
-                {
-                    // logger.debug("Marker P%d moved to (%d, %d)", player, r, c);
-                    *last = pos;
-                }
+                // logger.debug("Marker P%d moved to (%d, %d)", player, r, c);
+                *last = pos;
             }
         }
     }
