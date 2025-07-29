@@ -31,7 +31,7 @@ public:
 
 protected:
     const Board &board;
-    double param=2.0;
+    double param = 2.0;
 
     std::pair<int, int> start_cell;
     std::pair<int, int> end_cell;
@@ -46,6 +46,16 @@ public:
     using BasePhysics::BasePhysics;
     void reset(const Command &cmd) override
     {
+        // קודם נטפל בפרמטרים
+        if (cmd.params.empty())
+        {
+            start_cell = end_cell = {0, 0};
+        }
+        else
+        {
+            auto param = cmd.params[0];
+            start_cell = end_cell = param;
+        }
         if (cmd.type == "done")
         {
             end_cell = start_cell;

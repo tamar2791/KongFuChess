@@ -18,7 +18,18 @@ public:
                                         const std::string &name,
                                         const nlohmann::json &cfg) const
     {
-        const nlohmann::json& physics_cfg = cfg; 
+        nlohmann::json physics_cfg;
+        if (cfg.is_null() || cfg.empty()){
+            physics_cfg = nlohmann::json{}; // JSON ריק
+        }
+        else if(cfg.contains("physics"))
+        {
+            physics_cfg = cfg["physics"];
+        }
+        else
+        {
+            physics_cfg = cfg;
+        }
         std::string key = to_lower(name);
         if (key == "idle")
         {

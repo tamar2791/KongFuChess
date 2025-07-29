@@ -82,19 +82,19 @@ private:
         {
             throw std::runtime_error("Missing states directory: " + states_root.string());
         }
-
+        
         GlobalTrans global_trans = load_master_csv(states_root);
-
+        
         std::unordered_map<std::string, std::shared_ptr<State>> states;
-
+        
         std::pair<int, int> board_size = {board.W_cells, board.H_cells};
         std::pair<int, int> cell_px = {board.cell_W_pix, board.cell_H_pix};
-
+        
         // iterate over each subdirectory in states_root
         for (const auto &entry : fs::directory_iterator(states_root))
         {
             if (!entry.is_directory())
-                continue;
+            continue;
             std::string name = entry.path().filename().string();
             fs::path cfg_path = entry.path() / "config.json";
             nlohmann::json cfg;
@@ -110,7 +110,7 @@ private:
                     // ignore invalid json – default cfg
                 }
             }
-
+            
             // Moves
             fs::path moves_path = entry.path() / "moves.txt";
             std::shared_ptr<Moves> moves_ptr;
@@ -118,11 +118,11 @@ private:
             {
                 moves_ptr = std::make_shared<Moves>(moves_path.string(), board_size);
             }
-
+            
             // Graphics
             nlohmann::json gfx_cfg = cfg.contains("graphics") ? cfg["graphics"] : nlohmann::json{};
             auto graphics = gfx_factory.load((entry.path() / "sprites").string(), gfx_cfg, cell_px);
-
+            
             // Physics
             nlohmann::json phys_cfg = cfg.contains("physics") ? cfg["physics"] : nlohmann::json{};
             PhysicsFactory phys_factory(board);

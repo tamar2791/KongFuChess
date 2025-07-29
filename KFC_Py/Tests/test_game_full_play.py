@@ -21,7 +21,7 @@ BOARD_CSV = PIECES_ROOT / "board.csv"
 
 
 def test_gameplay_pawn_move_and_capture():
-    game = create_game("../../pieces", MockImgFactory())
+    game = create_game("../../pieces/", MockImgFactory())
     game._time_factor = 1_000_000_000
     game._update_cell2piece_map()
     pw = game.pos[(6, 0)][0]
@@ -49,7 +49,7 @@ def test_gameplay_pawn_move_and_capture():
 
 def test_piece_blocked_by_own_color():
     """A rook cannot move through a friendly pawn that blocks its path."""
-    game = create_game("../../pieces", MockImgFactory())
+    game = create_game("../../pieces/", MockImgFactory())
     game._time_factor = 1_000_000_000  # speed-up time for fast tests
     game._update_cell2piece_map()
 
@@ -66,7 +66,7 @@ def test_piece_blocked_by_own_color():
 
 def test_illegal_move_rejected():
     """A bishop attempting a vertical move (illegal) should be rejected."""
-    game = create_game("../../pieces", MockImgFactory())
+    game = create_game("../../pieces/", MockImgFactory())
     game._time_factor = 1_000_000_000
     game._update_cell2piece_map()
 
@@ -82,7 +82,7 @@ def test_illegal_move_rejected():
 
 def test_knight_jumps_over_friendly_pieces():
     """A knight should be able to jump over friendly pieces."""
-    game = create_game("../../pieces", MockImgFactory())
+    game = create_game("../../pieces/", MockImgFactory())
     game._time_factor = 1_000_000_000
     game._update_cell2piece_map()
 
@@ -98,7 +98,7 @@ def test_knight_jumps_over_friendly_pieces():
 
 def test_piece_capture():
     """Knight captures an opposing pawn after a sequence of moves."""
-    game = create_game("../../pieces", MockImgFactory())
+    game = create_game("../../pieces/", MockImgFactory())
     game._time_factor = 1_000_000_000
     game._update_cell2piece_map()
 
@@ -122,7 +122,7 @@ def test_piece_capture():
 
 def test_pawn_double_step_only_first_move():
     """Pawn may move two squares only on its initial move; afterwards only one square."""
-    game = create_game("../../pieces", MockImgFactory())
+    game = create_game("../../pieces/", MockImgFactory())
     game._time_factor = 1_000_000_000
     game._update_cell2piece_map()
 
