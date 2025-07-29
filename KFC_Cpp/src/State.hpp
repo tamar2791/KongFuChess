@@ -1,4 +1,5 @@
 #pragma once
+#include "Common.hpp" // עבור PairHash
 
 #include "Moves.hpp"
 #include "Graphics.hpp"
@@ -7,6 +8,8 @@
 #include <memory>
 #include <string>
 #include <cctype>
+#include <utility>
+#include <vector>
 
 class State : public std::enable_shared_from_this<State> {
 public:
@@ -29,8 +32,7 @@ public:
         graphics->reset(cmd);
         physics->reset(cmd);
     }
-
-    std::shared_ptr<State> on_command(const Command& cmd) {
+    std::shared_ptr<State> on_command(const Command& cmd,Cell2Pieces& c) {
         std::string key = cmd.type;
         for(auto& ch : key) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
         auto it = transitions.find(key);
@@ -44,10 +46,10 @@ public:
         return shared_from_this();
     }
 
-    std::shared_ptr<State> update(int now_ms) {
+    std::shared_ptr<State> update(int now_ms, Cell2Pieces& c) {
         auto internal = physics->update(now_ms);
         if(internal) {
-            return on_command(*internal);
+            return on_command(*internal,c);
         }
         graphics->update(now_ms); // keep graphics in sync when no state change
         return shared_from_this();

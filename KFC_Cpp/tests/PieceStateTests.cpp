@@ -65,23 +65,23 @@ TEST_CASE("Piece state transitions via commands") {
     CHECK(piece->current_cell() == pair<int,int>{4,4});
 
     // Move command
-    Piece::Cell2Pieces map;
+    Cell2Pieces map;
     map[piece->current_cell()].push_back(piece);
 
     piece->on_command(Command{100, piece->id, "move", {{4,4},{4,5}}}, map);
     CHECK(piece->state->name == "move");
 
     // After move completes (>1s)
-    piece->update(1200);
+    piece->update(1200,map);
     CHECK(piece->state->name == "idle");
 
     // Jump command
-    Piece::Cell2Pieces emptyMap;
+    Cell2Pieces emptyMap;
     piece->on_command(Command{1300, piece->id, "jump", {{4,4}}}, emptyMap);
     CHECK(piece->state->name == "jump");
 
     // Jump finishes (>100ms)
-    piece->update(1500);
+    piece->update(1500,emptyMap);
     CHECK(piece->state->name == "idle");
 }
 
@@ -91,7 +91,7 @@ TEST_CASE("Piece movement blocker flag") {
 
     CHECK(piece->is_movement_blocker());
 
-    Piece::Cell2Pieces map;
+    Cell2Pieces map;
     map[piece->current_cell()].push_back(piece);
     piece->on_command(Command{0, piece->id, "move", {{4,4},{4,5}}}, map);
     CHECK_FALSE(piece->is_movement_blocker());
@@ -101,7 +101,7 @@ TEST_CASE("Invalid command keeps state unchanged") {
     Board board = make_board();
     auto piece = make_piece("QW", {4,4}, board);
     auto state_before = piece->state;
-    Piece::Cell2Pieces emptyMap2;
+    Cell2Pieces emptyMap2;
     piece->on_command(Command{0, piece->id, "invalid", {}}, emptyMap2);
     CHECK(piece->state == state_before);
 } 

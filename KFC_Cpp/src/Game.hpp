@@ -1,4 +1,5 @@
 #pragma once
+#include "Common.hpp"
 
 #include <opencv2/opencv.hpp>
 #include "Board.hpp"
@@ -12,7 +13,6 @@
 #include <fstream>
 #include <sstream>
 #include "GraphicsFactory.hpp"
-#include "Common.hpp"
 #include <chrono>
 #include <thread>
 #include <queue>
@@ -23,8 +23,7 @@
 #include <mutex>
 #include "KeyboardProcessor.hpp"
 #include "KeyboardProducer.hpp"
-#include <utility>  // בשביל std::pair
-
+#include <utility> // בשביל std::pair
 
 #if __has_include(<filesystem>)
 #include <filesystem>
@@ -46,9 +45,9 @@ struct PlayerData
 {
     int player;
     std::shared_ptr<KeyboardProcessor> kp;
-    std::shared_ptr<std::pair<int, int>>last_cursor;
+    std::shared_ptr<std::pair<int, int>> last_cursor;
 
-    PlayerData(int p, std::shared_ptr<KeyboardProcessor>k, std::pair<int, int> *l)
+    PlayerData(int p, std::shared_ptr<KeyboardProcessor> k, std::pair<int, int> *l)
         : player(p), kp(k), last_cursor(l) {}
 };
 
@@ -90,7 +89,7 @@ private:
     void validate();
     bool is_win() const;
     void _draw();
-    void _show()const;
+    void _show() const;
 
     std::unordered_map<std::string, PiecePtr> piece_by_id;
     // Map from board cell to list of occupying pieces
@@ -132,8 +131,8 @@ inline void Game::run(int num_iterations, bool is_with_graphics)
     run_game_loop(num_iterations, is_with_graphics);
 
     announce_win();
-    int x=0;
-    std::cin>>x;
+    int x = 0;
+    //std::cin >> x;
 }
 
 inline void Game::start_user_input_thread()
@@ -149,9 +148,9 @@ inline void Game::start_user_input_thread()
 
     // start the keyboard producers (with player number)
     kb_prod_1 = std::make_shared<KeyboardProducer>(
-        user_input_queue,input_mutex, *kp1, 1);
+        user_input_queue, input_mutex, *kp1, 1);
     kb_prod_2 = std::make_shared<KeyboardProducer>(
-        user_input_queue,input_mutex, *kp2, 2);
+        user_input_queue, input_mutex, *kp2, 2);
 
     kb_prod_1->start(); // או אפשר להריץ ב־ctor אם זה אוטומטי
     kb_prod_2->start();
@@ -164,7 +163,7 @@ inline void Game::run_game_loop(int num_iterations, bool is_with_graphics)
     {
         int now = game_time_ms();
         for (auto &p : pieces)
-            p->update(now);
+            p->update(now,pos);
 
         update_cell2piece_map();
 
@@ -189,7 +188,7 @@ inline void Game::run_game_loop(int num_iterations, bool is_with_graphics)
                 return;
         }
         /* idle to mimic frame pacing */
-        std::cout<<"DEBUG"<<std::endl;
+        //std::cout << "DEBUG" << std::endl;
     }
     if (is_with_graphics)
     {
@@ -285,10 +284,15 @@ inline void Game::enqueue_command(const Command &cmd)
 inline Game create_game(const std::string &pieces_root,
                         const ImgFactoryPtr &img_factory)
 {
-    std::cout << "Creating game from pieces in: " << pieces_root << std::endl;
+    //std::cout << "=== DEBUG: Creating game ===" << std::endl;
+    //std::cout << "Pieces root: " << pieces_root << std::endl;
     GraphicsFactory gfx_factory(img_factory);
     fs::path root = fs::path(pieces_root);
     fs::path board_csv = root / "board.csv";
+    // בדיקת קיום קבצים
+    //std::cout << "Board CSV path: " << board_csv.string() << std::endl;
+    //std::cout << "Board CSV exists: " << fs::exists(board_csv) << std::endl;
+
     std::ifstream in(board_csv);
     if (!in)
     {
@@ -296,25 +300,46 @@ inline Game create_game(const std::string &pieces_root,
         throw std::runtime_error("Cannot open board.csv");
     }
     fs::path board_png = root / "board.png";
+    //std::cout << "Board PNG path: " << board_png.string() << std::endl;
+    //std::cout << "Board PNG exists: " << fs::exists(board_png) << std::endl;
+
     auto board_img = img_factory->load(board_png.string());
     Board board(32, 32, 8, 8, board_img);
-    
+
     PieceFactory pf(board, pieces_root, gfx_factory);
     std::vector<PiecePtr> out;
-    
+
     std::string line;
     int row = 0;
+    //std::cout << "=== Reading board.csv ===" << std::endl;
     while (std::getline(in, line))
     {
+        //std::cout << "Line " << row << ": '" << line << "'" << std::endl;
+
         std::stringstream ss(line);
         std::string cell;
         int col = 0;
         while (std::getline(ss, cell, ','))
         {
+            //std::cout << "Line " << row << ": '" << line << "'" << std::endl;
+            // הסרת רווחים מיותרים
+            cell.erase(0, cell.find_first_not_of(" \t\r\n"));
+            cell.erase(cell.find_last_not_of(" \t\r\n") + 1);
+
             if (!cell.empty())
             {
-                auto piece = pf.create_piece(cell, {col, row});
-                out.push_back(piece);
+                //std::cout << "  Creating piece: '" << cell << "' at (" << col << "," << row << ")" << std::endl;
+                try {
+                    auto piece = pf.create_piece(cell, {col, row});
+                    if (piece) {
+                        //std::cout << "    SUCCESS: Created piece with ID: " << piece->id << std::endl;
+                        out.push_back(piece);
+                    } else {
+                        std::cout << "    ERROR: create_piece returned nullptr for '" << cell << "'" << std::endl;
+                    }
+                } catch (const std::exception& e) {
+                    std::cout << "    EXCEPTION: " << e.what() << std::endl;
+                }
             }
             ++col;
         }
@@ -324,10 +349,10 @@ inline Game create_game(const std::string &pieces_root,
 }
 inline void Game::_draw()
 {
-    board = clone_board();
+    Board display_board = clone_board();
     for (const auto &p : pieces)
     {
-        p->draw_on_board(board, game_time_ms());
+        p->draw_on_board(display_board, game_time_ms());
         if (kp1 && kp2)
         {
             std::vector<PlayerData> players = {
@@ -338,7 +363,7 @@ inline void Game::_draw()
             {
                 int player = data.player;
                 std::shared_ptr<KeyboardProcessor> kp = data.kp;
-                std::shared_ptr<std::pair<int, int>>last = data.last_cursor;
+                std::shared_ptr<std::pair<int, int>> last = data.last_cursor;
 
                 // קבלת מיקום הסמן
                 std::pair<int, int> pos = kp->get_cursor();
@@ -370,7 +395,9 @@ inline void Game::_draw()
             }
         }
     }
+    display_board.show();
 }
-inline void Game::_show()const{
+inline void Game::_show() const
+{
     board.show();
 }

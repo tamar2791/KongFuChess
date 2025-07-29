@@ -20,8 +20,8 @@ Board::Board(int cell_H_pix_,
       cell_H_m(cell_H_m_),
       cell_W_m(cell_W_m_)
 {
-    std::cout << "Board created: " << W_cells_ << "x" << H_cells_
-              << " cell_dims=" << cell_W_m_ << "x" << cell_H_m_ << std::endl;
+    // std::cout << "Board created: " << W_cells_ << "x" << H_cells_
+    //           << " cell_dims=" << cell_W_m_ << "x" << cell_H_m_ << std::endl;
 }
 Board::Board()
     : cell_H_pix(64),
@@ -32,7 +32,7 @@ Board::Board()
       cell_H_m(1.0),
       cell_W_m(1.0)
 {
-    std::cout << "Board created with default values" << std::endl;
+    //std::cout << "Board created with default values" << std::endl;
 }
 // ---------------------------------------------------------------------------
 Board Board::clone() const
@@ -52,8 +52,8 @@ std::pair<int, int> Board::m_to_cell(const std::pair<double, double> &pos_m) con
 {
     if (W_cells <= 0 || H_cells <= 0)
     {
-        std::cerr << "ERROR: Board not properly initialized! "
-                  << "W_cells=" << W_cells << ", H_cells=" << H_cells << std::endl;
+        // std::cerr << "ERROR: Board not properly initialized! "
+        //           << "W_cells=" << W_cells << ", H_cells=" << H_cells << std::endl;
         //throw std::runtime_error("Board not properly initialized");
     }
     double x_m = pos_m.first;  // מיקום X במטרים
@@ -63,8 +63,8 @@ std::pair<int, int> Board::m_to_cell(const std::pair<double, double> &pos_m) con
     if (cell_W_m <= 0 || cell_H_m <= 0 ||
         cell_W_m > 1e10 || cell_H_m > 1e10)
     { // בדיקה לערכי זבל
-        std::cerr << "ERROR: Invalid cell dimensions! "
-                  << "cell_W_m=" << cell_W_m << ", cell_H_m=" << cell_H_m << std::endl;
+        // std::cerr << "ERROR: Invalid cell dimensions! "
+        //           << "cell_W_m=" << cell_W_m << ", cell_H_m=" << cell_H_m << std::endl;
         //throw std::runtime_error("Invalid cell dimensions");
     }
 
@@ -73,18 +73,18 @@ std::pair<int, int> Board::m_to_cell(const std::pair<double, double> &pos_m) con
     int row = static_cast<int>(y_m / cell_H_m); // שורה
 
     // DEBUG: הדפס את הערכים לפני החזרה
-    std::cout << "pos_m: (" << x_m << ", " << y_m << ")"
-              << " -> cell: (" << col << ", " << row << ")"
-              << " [cell_W_m=" << cell_W_m << ", cell_H_m=" << cell_H_m << "]"
-              << " [board_size: " << W_cells << "x" << H_cells << "]" << std::endl;
+    // std::cout << "pos_m: (" << x_m << ", " << y_m << ")"
+    //           << " -> cell: (" << col << ", " << row << ")"
+    //           << " [cell_W_m=" << cell_W_m << ", cell_H_m=" << cell_H_m << "]"
+    //           << " [board_size: " << W_cells << "x" << H_cells << "]" << std::endl;
 
     // בדיקת גבולות מלאה
     if (col < 0 || col >= W_cells || row < 0 || row >= H_cells)
     {
-        std::cerr << "ERROR: Cell coordinates out of bounds! "
-                  << "pos_m(" << x_m << "," << y_m << ") -> "
-                  << "cell(" << col << "," << row << ") "
-                  << "board_size(" << W_cells << "x" << H_cells << ")" << std::endl;
+        // std::cerr << "ERROR: Cell coordinates out of bounds! "
+        //           << "pos_m(" << x_m << "," << y_m << ") -> "
+        //           << "cell(" << col << "," << row << ") "
+        //           << "board_size(" << W_cells << "x" << H_cells << ")" << std::endl;
 
         // זרוק חריגה אם הקואורדינטות לא חוקיות
         //throw std::out_of_range("Cell coordinates out of bounds");

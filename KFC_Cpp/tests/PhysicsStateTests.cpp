@@ -82,11 +82,11 @@ TEST_CASE("State transition idle→move→idle via internal done") {
     Piece piece("PX", idle);
 
     Command mv(0, piece.id, "move", {{0,0},{0,1}});
-    piece.on_command(mv, Piece::Cell2Pieces{});
+    piece.on_command(mv, Cell2Pieces{});
     CHECK(piece.state == move);
 
     // advance 2s so move ends
-    piece.update(2100);
+    piece.update(2100,Cell2Pieces{});
     CHECK(piece.state == idle);
 } 
 

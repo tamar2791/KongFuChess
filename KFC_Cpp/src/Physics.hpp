@@ -1,8 +1,8 @@
 #pragma once
 
+#include "Common.hpp"
 #include "Board.hpp"
 #include "Command.hpp"
-#include "Common.hpp"
 #include <cmath>
 #include <memory>
 #include <iostream>
