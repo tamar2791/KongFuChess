@@ -132,6 +132,8 @@ inline void Game::run(int num_iterations, bool is_with_graphics)
     run_game_loop(num_iterations, is_with_graphics);
 
     announce_win();
+    int x=0;
+    std::cin>>x;
 }
 
 inline void Game::start_user_input_thread()
@@ -187,9 +189,12 @@ inline void Game::run_game_loop(int num_iterations, bool is_with_graphics)
                 return;
         }
         /* idle to mimic frame pacing */
+        std::cout<<"DEBUG"<<std::endl;
     }
-    int x;
-    std::cin>>x; // wait for user input to exit
+    if (is_with_graphics)
+    {
+        board.show();
+    }
 }
 
 inline void Game::update_cell2piece_map()
@@ -280,25 +285,23 @@ inline void Game::enqueue_command(const Command &cmd)
 inline Game create_game(const std::string &pieces_root,
                         const ImgFactoryPtr &img_factory)
 {
-
+    std::cout << "Creating game from pieces in: " << pieces_root << std::endl;
     GraphicsFactory gfx_factory(img_factory);
     fs::path root = fs::path(pieces_root);
     fs::path board_csv = root / "board.csv";
-    //std::cout << "Loading game from: " << board_csv << std::endl;
     std::ifstream in(board_csv);
     if (!in)
     {
         std::cerr << "Error: Cannot open board.csv at " << board_csv << std::endl;
         throw std::runtime_error("Cannot open board.csv");
     }
-
     fs::path board_png = root / "board.png";
     auto board_img = img_factory->load(board_png.string());
     Board board(32, 32, 8, 8, board_img);
-
+    
     PieceFactory pf(board, pieces_root, gfx_factory);
     std::vector<PiecePtr> out;
-
+    
     std::string line;
     int row = 0;
     while (std::getline(in, line))

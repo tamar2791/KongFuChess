@@ -36,7 +36,7 @@ TEST_CASE("PhysicsFactory creates correct subclasses") {
 TEST_CASE("PieceFactory generates unique piece ids and correct location") {
     Board board(32,32,8,8, make_shared<MockImg>());
     GraphicsFactory gf;
-    PieceFactory pf(board, "../../pieces", gf);
+    PieceFactory pf(board, "../../pieces/", gf);
 
     std::unordered_set<std::string> ids;
     for(int i=0;i<10;++i) {
@@ -49,6 +49,6 @@ TEST_CASE("PieceFactory generates unique piece ids and correct location") {
 TEST_CASE("create_game builds full board of 32 pieces") {
     auto gf = std::make_shared<MockImgFactory>();
     // the relative path is relative to the exe path , not the code path. 
-    Game game = create_game("../../pieces", gf);
+    Game game = create_game("../../pieces/", gf);
     CHECK(game.pieces.size() == 32);
 } 

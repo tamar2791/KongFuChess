@@ -19,13 +19,16 @@ public:
                                         const nlohmann::json &cfg) const
     {
         nlohmann::json physics_cfg;
-        if (!cfg.is_null() && cfg.contains("physics"))
+        if (cfg.is_null() || cfg.empty()){
+            physics_cfg = nlohmann::json{}; // JSON ריק
+        }
+        else if(cfg.contains("physics"))
         {
             physics_cfg = cfg["physics"];
         }
         else
         {
-            physics_cfg = nlohmann::json{}; // JSON ריק
+            physics_cfg = cfg;
         }
         std::string key = to_lower(name);
         if (key == "idle")
