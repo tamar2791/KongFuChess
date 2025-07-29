@@ -114,7 +114,13 @@ private:
     void handle_key_event_internal(const std::string& key) {
         std::string action = processor.process_key(key);
         
-        if (action != "select" && action != "jump") {
+        // הדפסת debug
+        if (!action.empty()) {
+            std::cout << "[DEBUG] Player " << player << " action: " << action << std::endl;
+        }
+        
+        // טפל בכל הפעולות, לא רק select ו-jump
+        if (action.empty()) {
             return;
         }
         
@@ -125,6 +131,7 @@ private:
         } else if (action == "jump") {
             handle_jump_action(cell);
         }
+        // תזוזות הסמן מטופלות ב-processor.process_key
     }
 
     PiecePtr find_piece_at(const std::pair<int, int>& cell, const std::vector<PiecePtr>& pieces) {
@@ -228,17 +235,22 @@ private:
     }
 
     std::string convert_opencv_key_to_string(int key) {
+        // הדפסת debug לראות אילו מקשים נלחצים
+        if (key != 255) {
+            std::cout << "[DEBUG] Key pressed: " << key << std::endl;
+        }
+        
         switch (key) {
             case 27: return "esc";
             case 13: return "enter";
             case 32: return " ";
             case 43: return "+";
             case 45: return "-";
-            // חצי כיוון
-            case 0: return "up";    // חץ עליון
-            case 1: return "down";  // חץ תחתון
-            case 2: return "left";  // חץ שמאל
-            case 3: return "right"; // חץ ימין
+            // חצי כיוון - קודים נכונים של OpenCV
+            case 2490368: return "up";    // חץ עליון
+            case 2621440: return "down";  // חץ תחתון
+            case 2424832: return "left";  // חץ שמאל
+            case 2555904: return "right"; // חץ ימין
             // אותיות רגילות
             default:
                 if (key >= 'a' && key <= 'z') {
