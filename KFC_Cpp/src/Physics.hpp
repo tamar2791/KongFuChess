@@ -1,17 +1,18 @@
 #pragma once
 
+#include "Common.hpp"
 #include "Board.hpp"
 #include "Command.hpp"
-#include "Common.hpp"
 #include <cmath>
 #include <memory>
 #include <iostream>
+#include <chrono>
 
 class BasePhysics
 {
 public:
     explicit BasePhysics(const Board &board, double param = 2.0)
-        : board(board), param(param) {}
+        : board(board), param(param), curr_pos_m{0.0, 0.0}, need_clear_path(true) {}
 
     virtual ~BasePhysics() = default;
 
@@ -21,17 +22,22 @@ public:
 
     std::pair<double, double> get_pos_m() const { return curr_pos_m; }
     std::pair<int, int> get_pos_pix() const { return board.m_to_pix(curr_pos_m); }
-    std::pair<int, int> get_curr_cell() const { return board.m_to_cell(curr_pos_m); }
+    std::pair<int, int> get_curr_cell() const { 
+        return board.m_to_cell(curr_pos_m); 
+    }
 
     int get_start_ms() const { return start_ms; }
+    bool is_need_clear_path() const { return need_clear_path; }
+    void set_need_clear_path(bool value) { need_clear_path = value; }
 
     virtual bool can_be_captured() const { return true; }
     virtual bool can_capture() const { return true; }
     virtual bool is_movement_blocker() const { return false; }
 
 protected:
-    const Board &board;
+    Board board;
     double param = 2.0;
+    bool need_clear_path;
 
     std::pair<int, int> start_cell;
     std::pair<int, int> end_cell;
@@ -46,40 +52,15 @@ public:
     using BasePhysics::BasePhysics;
     void reset(const Command &cmd) override
     {
-        // קודם נטפל בפרמטרים
         if (cmd.params.empty())
         {
             start_cell = end_cell = {0, 0};
         }
         else
         {
-            auto param = cmd.params[0];
-            start_cell = end_cell = param;
-        }
-        if (cmd.type == "done")
-        {
-            end_cell = start_cell;
-        }
-        else if (cmd.params.empty())
-        {
-            start_cell = end_cell = {0, 0};
-        }
-        else
-        {
-            auto param = cmd.params[0];
-            if (param.first >= 0 && param.first < 8 &&
-                param.second >= 0 && param.second < 8)
-            {
-                start_cell = end_cell = param;
-            }
-            else
-            {
-                start_cell = end_cell = {0, 0}; // ערך ברירת מחדל
-            }
+            start_cell = end_cell = cmd.params[0];
         }
         curr_pos_m = board.cell_to_m(start_cell);
-        // std::cout << "Reset: start_cell = (" << start_cell.first << "," << start_cell.second << ")" << std::endl;
-        // std::cout << "Reset: curr_pos_m = (" << curr_pos_m.first << "," << curr_pos_m.second << ")" << std::endl;
         start_ms = cmd.timestamp;
     }
     std::shared_ptr<Command> update(int) override { return nullptr; }
@@ -97,11 +78,15 @@ public:
 
     void reset(const Command &cmd) override
     {
-        start_cell = cmd.params[0];
-        end_cell = cmd.params[1];
+        if (cmd.params.size() < 2) {
+            start_cell = end_cell = {0, 0};
+        } else {
+            start_cell = cmd.params[0];
+            end_cell = cmd.params[1];
+        }
         curr_pos_m = board.cell_to_m(start_cell);
         start_ms = cmd.timestamp;
-
+        
         std::pair<double, double> start_pos = board.cell_to_m(start_cell);
         std::pair<double, double> end_pos = board.cell_to_m(end_cell);
         movement_vec = {end_pos.first - start_pos.first, end_pos.second - start_pos.second};
@@ -143,7 +128,11 @@ public:
 
     void reset(const Command &cmd) override
     {
-        start_cell = end_cell = cmd.params[0];
+        if (cmd.params.empty()) {
+            start_cell = end_cell = {0, 0};
+        } else {
+            start_cell = end_cell = cmd.params[0];
+        }
         curr_pos_m = board.cell_to_m(start_cell);
         start_ms = cmd.timestamp;
     }

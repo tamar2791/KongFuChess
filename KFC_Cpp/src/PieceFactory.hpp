@@ -127,7 +127,9 @@ private:
             nlohmann::json phys_cfg = cfg.contains("physics") ? cfg["physics"] : nlohmann::json{};
             PhysicsFactory phys_factory(board);
             auto physics = phys_factory.create({0, 0}, name, phys_cfg);
-            // Note: need_clear_path flag not implemented in C++ physics yet
+            // Set need_clear_path flag from config (default true)
+            bool need_clear_path = cfg.value("need_clear_path", true);
+            physics->set_need_clear_path(need_clear_path);
             auto st = std::make_shared<State>(moves_ptr, graphics, physics);
             st->name = name;
             states[name] = st;
@@ -145,6 +147,7 @@ private:
                 auto dst_it = states.find(nxt);
                 if (dst_it == states.end())
                     continue;
+                //std::cout << "Setting transition: " << frm << " --[" << ev << "]--> " << nxt << std::endl;
                 src->set_transition(ev, dst_it->second);
             }
         }

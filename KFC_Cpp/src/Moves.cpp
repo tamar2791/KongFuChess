@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <cmath>
+#include <iostream>
 
 // ---------------------------------------------------------------------------
 Moves::Moves(const std::string& txt_path, std::pair<int,int> board_dims)
@@ -76,14 +77,22 @@ bool Moves::is_dst_cell_valid(int dr, int dc, bool dst_has_piece) const {
 
 bool Moves::is_valid(const std::pair<int,int>& src_cell,
                      const std::pair<int,int>& dst_cell,
-                     const std::unordered_set<std::pair<int,int>, PairHash>& cell_with_piece) const {
+                     const std::unordered_set<std::pair<int,int>, PairHash>& cell_with_piece,
+                     bool need_clear_path) const {
     int dr = dst_cell.first - src_cell.first;
     int dc = dst_cell.second - src_cell.second;
     bool dst_has_piece = cell_with_piece.count(dst_cell) > 0;
-    if(!is_dst_cell_valid(dr, dc, dst_has_piece)) return false;
-    if(!path_is_clear(src_cell, dst_cell, cell_with_piece)) return false;
+    
+    if(!is_dst_cell_valid(dr, dc, dst_has_piece)) {
+        return false;
+    }
+    if(need_clear_path && !path_is_clear(src_cell, dst_cell, cell_with_piece)) {
+        return false;
+    }
     // board bounds
-    if(dst_cell.first < 0 || dst_cell.first >= H || dst_cell.second < 0 || dst_cell.second >= W) return false;
+    if(dst_cell.first < 0 || dst_cell.first >= H || dst_cell.second < 0 || dst_cell.second >= W) {
+        return false;
+    }
     return true;
 }
 

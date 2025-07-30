@@ -38,7 +38,25 @@ void OpenCvImg::draw_on(Img& dst, int x, int y) {
 	auto* cvDst = dynamic_cast<OpenCvImg*>(&dst);
 	if (!cvDst) return;
 	if (impl->mat.empty()) return;
-	impl->mat.copyTo(cvDst->impl->mat(cv::Rect(x, y, impl->mat.cols, impl->mat.rows)));
+	
+	// בדיקת גבולות
+	if (x < 0 || y < 0 || x + impl->mat.cols > cvDst->impl->mat.cols || y + impl->mat.rows > cvDst->impl->mat.rows) {
+		return;
+	}
+	
+	cv::Mat src = impl->mat;
+	cv::Mat& dstMat = cvDst->impl->mat;
+	
+	// וידוא שלשתי התמונות יש אותו מספר ערוצים
+	if (src.channels() != dstMat.channels()) {
+		if (src.channels() == 3 && dstMat.channels() == 4) {
+			cv::cvtColor(src, src, cv::COLOR_BGR2BGRA);
+		} else if (src.channels() == 4 && dstMat.channels() == 3) {
+			cv::cvtColor(src, src, cv::COLOR_BGRA2BGR);
+		}
+	}
+	
+	src.copyTo(dstMat(cv::Rect(x, y, src.cols, src.rows)));
 }
 
 void OpenCvImg::put_text(const std::string& txt, int x, int y, double font_size) {
@@ -55,5 +73,5 @@ void OpenCvImg::show() const {
 void OpenCvImg::draw_rect(int x, int y, int width, int height, const std::vector<uint8_t> & color) {
 	if (impl->mat.empty()) return;
 	cv::Scalar cvColor = color.size() == 3 ? cv::Scalar(color[0], color[1], color[2]) : cv::Scalar(color[0], color[1], color[2], color[3]);
-	cv::rectangle(impl->mat, cv::Rect(x, y, width, height), cvColor, -1);
+	cv::rectangle(impl->mat, cv::Rect(x, y, width, height), cvColor, 2);
 }

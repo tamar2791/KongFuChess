@@ -22,7 +22,8 @@ public:
     bool is_dst_cell_valid(int dr, int dc, bool dst_has_piece) const;
     bool is_valid(const std::pair<int, int> &src_cell,
                   const std::pair<int, int> &dst_cell,
-                  const std::unordered_set<std::pair<int, int>, PairHash> &cell_with_piece) const;
+                  const std::unordered_set<std::pair<int, int>, PairHash> &cell_with_piece,
+                  bool need_clear_path = true) const;
 
 private:
     std::vector<RelMove> rel_moves;

@@ -1,12 +1,11 @@
 #pragma once
 
+#include "Common.hpp"
 #include "State.hpp"
 #include "Command.hpp"
 #include <memory>
 #include <unordered_map>
 #include <vector>
-#include "Common.hpp"
-#include "Piece.hpp"
 #include <utility>  // בשביל std::pair
 
 
@@ -21,20 +20,30 @@ public:
 	std::string id;
 	std::shared_ptr<State> state;
 
-	using Cell = std::pair<int, int>;
-	using Cell2Pieces = std::unordered_map<Cell, std::vector<PiecePtr>, PairHash>;
-
-	void on_command(const Command& cmd, Cell2Pieces&) {
-		state = state->on_command(cmd);
+	void on_command(const Command& cmd, Cell2Pieces& c) {
+		state = state->on_command(cmd,c);
 	}
 
 	void reset(int start_ms) {
-		auto cell = this->current_cell();
-		state->reset(Command{ start_ms,id,"idle",{cell} });
+		// Extract position from piece ID (e.g., "PW_(6,6)" -> {6,6})
+		std::string id_str = id;
+		size_t pos = id_str.find("_(");
+		if (pos != std::string::npos) {
+			std::string coords = id_str.substr(pos + 2);
+			size_t comma = coords.find(',');
+			if (comma != std::string::npos) {
+				int x = std::stoi(coords.substr(0, comma));
+				int y = std::stoi(coords.substr(comma + 1, coords.find(')') - comma - 1));
+				state->reset(Command{ start_ms, id, "idle", {{x, y}} });
+				return;
+			}
+		}
+		// Fallback
+		state->reset(Command{ start_ms, id, "idle", {{0, 0}} });
 	}
 
-	void update(int now_ms) {
-		state = state->update(now_ms);
+	void update(int now_ms,Cell2Pieces& c) {
+		state = state->update(now_ms,c);
 	}
 
 	bool is_movement_blocker() const { return state->physics->is_movement_blocker(); }
