@@ -48,6 +48,7 @@ public:
 
 	bool is_movement_blocker() const { return state->physics->is_movement_blocker(); }
 	void draw_on_board(Board& board, int now_ms) const {
+		state->graphics->update(now_ms);
 		int x=state->physics->get_pos_pix().first;
 		int y=state->physics->get_pos_pix().second;
 		ImgPtr sprite= state->graphics->get_img();

@@ -5,6 +5,10 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <functional>
+
+// פונקציה גלובלית להגדרת handler למקשים
+void set_global_key_handler(std::function<void(int)> handler);
 
 class OpenCvImg : public Img {
 public:

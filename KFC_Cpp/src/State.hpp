@@ -37,12 +37,17 @@ public:
         std::string key = cmd.type;
         for(auto& ch : key) ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
         
+        std::cout << "[STATE] Processing command type: " << key << " in state: " << name << std::endl;
+        
         auto it = transitions.find(key);
         if(it != transitions.end()) {
             auto next = it->second;
+            std::cout << "[STATE] Found transition to: " << (next ? next->name : "null") << std::endl;
+            
             if(next && key == "move" && cmd.params.size() >= 2) {
                 // Validate move using Moves class
                 if(!moves) {
+                    std::cout << "[STATE] No moves validator, accepting move" << std::endl;
                     next->reset(cmd);
                     return next;
                 }
@@ -52,16 +57,27 @@ public:
                         occupied_cells.insert(kv.first);
                     }
                 }
-                if(moves->is_valid(cmd.params[0], cmd.params[1], occupied_cells, physics->is_need_clear_path())) {
+                bool valid = moves->is_valid(cmd.params[0], cmd.params[1], occupied_cells, physics->is_need_clear_path());
+                std::cout << "[STATE] Move validation result: " << (valid ? "VALID" : "INVALID") << std::endl;
+                if(!valid) {
+                    auto from = cmd.params[0];
+                    auto to = cmd.params[1];
+                    std::cout << "[STATE] Attempted move: (" << from.first << "," << from.second << ") -> (" << to.first << "," << to.second << ")" << std::endl;
+                    std::cout << "[STATE] Delta: (" << (to.first - from.first) << "," << (to.second - from.second) << ")" << std::endl;
+                }
+                if(valid) {
                     next->reset(cmd);
                     return next;
                 }
                 // Invalid move - stay in current state
+                std::cout << "[STATE] Invalid move, staying in current state" << std::endl;
                 return shared_from_this();
             } else if(next) {
                 next->reset(cmd);
                 return next;
             }
+        } else {
+            std::cout << "[STATE] No transition found for: " << key << std::endl;
         }
         return shared_from_this();
     }

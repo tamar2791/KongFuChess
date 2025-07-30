@@ -128,7 +128,10 @@ private:
             PhysicsFactory phys_factory(board);
             auto physics = phys_factory.create({0, 0}, name, phys_cfg);
             // Set need_clear_path flag from config (default true)
-            bool need_clear_path = cfg.value("need_clear_path", true);
+            bool need_clear_path = true;
+            if(phys_cfg.contains("need_clear_path")) {
+                need_clear_path = phys_cfg["need_clear_path"];
+            }
             physics->set_need_clear_path(need_clear_path);
             auto st = std::make_shared<State>(moves_ptr, graphics, physics);
             st->name = name;

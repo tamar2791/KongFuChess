@@ -4,6 +4,10 @@
 #include <opencv2/opencv.hpp>
 #include <stdexcept>
 #include <vector>
+#include <functional>
+
+// פונקציה גלובלית לטיפול במקשים
+std::function<void(int)> global_key_handler = nullptr;
 
 struct OpenCvImg::Impl {
 	cv::Mat mat;
@@ -65,13 +69,35 @@ void OpenCvImg::put_text(const std::string& txt, int x, int y, double font_size)
 }
 
 void OpenCvImg::show() const {
-	if (impl->mat.empty()) return;
-	cv::imshow("Image", impl->mat);
-	cv::waitKey(1);
+    if (impl->mat.empty()) {
+        std::cout << "[DEBUG] OpenCvImg::show() - mat is empty!" << std::endl;
+        return;
+    }
+    
+    static bool first_show = true;
+    if (first_show) {
+        std::cout << "[DEBUG] First time showing window - size: " << impl->mat.cols << "x" << impl->mat.rows << std::endl;
+        cv::namedWindow("KFC Game - Click here and use keyboard!", cv::WINDOW_AUTOSIZE);
+        first_show = false;
+    }
+    
+    cv::imshow("KFC Game - Click here and use keyboard!", impl->mat);
+    
+    int key = cv::waitKey(1);
+    if (key != -1 && key != 255) {
+        std::cout << "[DEBUG] Key detected: " << key << std::endl;
+        if (global_key_handler) {
+            global_key_handler(key);
+        }
+    }
 }
-
 void OpenCvImg::draw_rect(int x, int y, int width, int height, const std::vector<uint8_t> & color) {
 	if (impl->mat.empty()) return;
 	cv::Scalar cvColor = color.size() == 3 ? cv::Scalar(color[0], color[1], color[2]) : cv::Scalar(color[0], color[1], color[2], color[3]);
 	cv::rectangle(impl->mat, cv::Rect(x, y, width, height), cvColor, 2);
+}
+
+// פונקציה להגדרת handler למקשים
+void set_global_key_handler(std::function<void(int)> handler) {
+	global_key_handler = handler;
 }

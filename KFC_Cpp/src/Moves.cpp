@@ -64,14 +64,18 @@ Moves::RelMove Moves::parse_line(const std::string& s) {
 
 // ---------------------------------------------------------------------------
 bool Moves::is_dst_cell_valid(int dr, int dc, bool dst_has_piece) const {
+    std::cout << "[MOVES] Looking for move (" << dr << "," << dc << ") in " << rel_moves.size() << " available moves:" << std::endl;
     for(const auto& mv : rel_moves) {
+        std::cout << "[MOVES]   Available: (" << mv.dr << "," << mv.dc << ") tag=" << mv.tag << std::endl;
         if(mv.dr == dr && mv.dc == dc) {
+            std::cout << "[MOVES]   FOUND MATCH! tag=" << mv.tag << ", dst_has_piece=" << dst_has_piece << std::endl;
             if(mv.tag == -1) return true;
             if(mv.tag == 0)  return !dst_has_piece;
             if(mv.tag == 1)  return dst_has_piece;
             return false;
         }
     }
+    std::cout << "[MOVES] Move not found in available moves!" << std::endl;
     return false; // not found
 }
 
@@ -83,16 +87,22 @@ bool Moves::is_valid(const std::pair<int,int>& src_cell,
     int dc = dst_cell.second - src_cell.second;
     bool dst_has_piece = cell_with_piece.count(dst_cell) > 0;
     
+    std::cout << "[MOVES] Checking move delta: (" << dr << "," << dc << "), dst_has_piece: " << dst_has_piece << std::endl;
+    
     if(!is_dst_cell_valid(dr, dc, dst_has_piece)) {
+        std::cout << "[MOVES] Move failed: dst_cell_valid check" << std::endl;
         return false;
     }
     if(need_clear_path && !path_is_clear(src_cell, dst_cell, cell_with_piece)) {
+        std::cout << "[MOVES] Move failed: path not clear" << std::endl;
         return false;
     }
     // board bounds
     if(dst_cell.first < 0 || dst_cell.first >= H || dst_cell.second < 0 || dst_cell.second >= W) {
+        std::cout << "[MOVES] Move failed: out of bounds" << std::endl;
         return false;
     }
+    std::cout << "[MOVES] Move is VALID!" << std::endl;
     return true;
 }
 

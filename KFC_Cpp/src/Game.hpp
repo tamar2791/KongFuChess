@@ -10,6 +10,7 @@
 #include <unordered_set>
 #include "img/Img.hpp"
 #include "img/ImgFactory.hpp"
+#include "img/OpenCvImg.hpp"
 #include <fstream>
 #include <sstream>
 #include "GraphicsFactory.hpp"
@@ -148,18 +149,27 @@ inline void Game::start_user_input_thread()
     kp1 = std::make_shared<KeyboardProcessor>(board.H_cells, board.W_cells, p1_map);
     kp2 = std::make_shared<KeyboardProcessor>(board.H_cells, board.W_cells, p2_map);
     
-    // אתחול מיקום התחלתי שונה לכל שחקן
-    kp1->process_key(""); // שחקן 1 נשאר ב-(0,0)
-    // הזז את שחקן 2 לשורה התחתונה
-    for(int i = 0; i < 7; i++) {
-        kp2->process_key("s"); // down
-    }
+    // שני השחקנים מתחילים ב-(0,0) כמו בפייתון
 
     // start the keyboard producers (with player number)
     kb_prod_1 = std::make_shared<KeyboardProducer>(
         user_input_queue, input_mutex, *kp1, 1);
     kb_prod_2 = std::make_shared<KeyboardProducer>(
         user_input_queue, input_mutex, *kp2, 2);
+    
+    // קשר בין ה-producers
+    kb_prod_1->set_other_player(kb_prod_2);
+    kb_prod_2->set_other_player(kb_prod_1);
+    
+    // העבר reference לרשימת הכלים
+    kb_prod_1->set_pieces_reference(&pieces);
+    kb_prod_2->set_pieces_reference(&pieces);
+    
+    // הגדרת handler למקשים מ-OpenCV
+    set_global_key_handler([this](int key) {
+        std::cout << "[DEBUG] Global key handler received: " << key << std::endl;
+        kb_prod_1->handle_opencv_key(key);
+    });
 
     kb_prod_1->start(); // או אפשר להריץ ב־ctor אם זה אוטומטי
     kb_prod_2->start();
@@ -176,11 +186,16 @@ inline void Game::run_game_loop(int num_iterations, bool is_with_graphics)
 
         update_cell2piece_map();
 
-        while (!user_input_queue.empty())
+        // עיבוד פקודות מהתור
         {
-            auto cmd = user_input_queue.front();
-            user_input_queue.erase(user_input_queue.begin());
-            process_input(cmd);
+            std::lock_guard<std::mutex> guard(input_mutex);
+            while (!user_input_queue.empty())
+            {
+                auto cmd = user_input_queue.front();
+                user_input_queue.erase(user_input_queue.begin());
+                std::cout << "[GAME] Processing command: " << cmd << std::endl;
+                process_input(cmd);
+            }
         }
 
         if (is_with_graphics)
@@ -196,8 +211,9 @@ inline void Game::run_game_loop(int num_iterations, bool is_with_graphics)
             if (it_counter >= num_iterations)
                 return;
         }
-        /* idle to mimic frame pacing */
-        // std::cout << "DEBUG" << std::endl;
+        
+        // הוספת sleep קצר כדי לא לערבל את ה-CPU
+        std::this_thread::sleep_for(std::chrono::milliseconds(16)); // ~60 FPS
     }
     if (is_with_graphics)
     {
@@ -216,10 +232,24 @@ inline void Game::update_cell2piece_map()
 
 inline void Game::process_input(const Command &cmd)
 {
+    std::cout << "[GAME] Looking for piece: " << cmd.piece_id << std::endl;
     auto it = piece_by_id.find(cmd.piece_id);
-    if (it == piece_by_id.end())
+    if (it == piece_by_id.end()) {
+        std::cout << "[GAME] ERROR: Piece not found: " << cmd.piece_id << std::endl;
         return;
-    it->second->on_command(cmd, pos);
+    }
+    
+    auto piece = it->second;
+    auto old_cell = piece->current_cell();
+    std::cout << "[GAME] Piece " << cmd.piece_id << " before command at: (" << old_cell.first << "," << old_cell.second << ")" << std::endl;
+    
+    piece->on_command(cmd, pos);
+    
+    auto new_cell = piece->current_cell();
+    std::cout << "[GAME] Piece " << cmd.piece_id << " after command at: (" << new_cell.first << "," << new_cell.second << ")" << std::endl;
+    
+    auto pos_pix = piece->state->physics->get_pos_pix();
+    std::cout << "[GAME] Piece pixel position: (" << pos_pix.first << "," << pos_pix.second << ")" << std::endl;
 }
 
 inline void Game::resolve_collisions()
@@ -345,15 +375,16 @@ inline Game create_game(const std::string &pieces_root,
                 // std::cout << "  Creating piece: '" << cell << "' at (" << col << "," << row << ")" << std::endl;
                 try
                 {
-                    auto piece = pf.create_piece(cell, {col, row});
+                    std::cout << "Creating piece '" << cell << "' at board position (row=" << row << ", col=" << col << ")" << std::endl;
+                    auto piece = pf.create_piece(cell, {row, col});
                     if (piece)
                     {
-                        // std::cout << "    SUCCESS: Created piece with ID: " << piece->id << std::endl;
+                        std::cout << "SUCCESS: Created piece " << piece->id << " at (" << col << "," << row << ")" << std::endl;
                         out.push_back(piece);
                     }
                     else
                     {
-                        std::cout << "    ERROR: create_piece returned nullptr for '" << cell << "'" << std::endl;
+                        std::cout << "ERROR: create_piece returned nullptr for '" << cell << "'" << std::endl;
                     }
                 }
                 catch (const std::exception &e)
@@ -370,9 +401,13 @@ inline Game create_game(const std::string &pieces_root,
 inline void Game::_draw()
 {
     Board display_board = clone_board();
+    int now = game_time_ms();
     for (const auto &p : pieces)
     {
-        p->draw_on_board(display_board, game_time_ms());
+        auto pos_pix = p->state->physics->get_pos_pix();
+        p->state->graphics->update(now);
+        ImgPtr sprite = p->state->graphics->get_img();
+        sprite->draw_on(*display_board.img, pos_pix.first, pos_pix.second);
     }
 
     if (kp1 && kp2)
