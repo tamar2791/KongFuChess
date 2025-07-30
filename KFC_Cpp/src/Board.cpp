@@ -90,18 +90,19 @@ std::pair<int, int> Board::m_to_cell(const std::pair<double, double> &pos_m) con
         //throw std::out_of_range("Cell coordinates out of bounds");
     }
 
-    return {col, row}; // מחזיר (עמודה, שורה)
+    return {row, col}; // מחזיר (שורה, עמודה) - תיקון הבעיה!
 }
 
 std::pair<double, double> Board::cell_to_m(const std::pair<int, int> &cell) const
 {
-    int col = cell.first;  // עמודה
-    int row = cell.second; // שורה
+    int row = cell.first;  // שורה
+    int col = cell.second; // עמודה
 
     // המרה למיקום במטרים
     double x_m = col * cell_W_m; // עמודה → x במטרים
     double y_m = row * cell_H_m; // שורה → y במטרים
 
+    //std::cout << "[DEBUG] cell_to_m: cell(" << row << "," << col << ") -> pos_m(" << x_m << "," << y_m << ")" << std::endl;
     return {x_m, y_m};
 }
 
@@ -110,9 +111,10 @@ std::pair<int, int> Board::m_to_pix(const std::pair<double, double> &pos_m) cons
     double x_m = pos_m.first;
     double y_m = pos_m.second;
 
-    // המרה לפיקסלים - במערכת הפיקסלים: (y_px, x_px) במקום (x_px, y_px)
+    // המרה לפיקסלים
     int x_px = static_cast<int>(std::round((x_m / cell_W_m) * cell_W_pix));
     int y_px = static_cast<int>(std::round((y_m / cell_H_m) * cell_H_pix));
 
+    //std::cout << "[DEBUG] m_to_pix: pos_m(" << x_m << "," << y_m << ") -> pix(" << x_px << "," << y_px << ")" << std::endl;
     return {x_px, y_px};
 }

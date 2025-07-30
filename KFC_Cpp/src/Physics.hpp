@@ -22,8 +22,9 @@ public:
 
     std::pair<double, double> get_pos_m() const { return curr_pos_m; }
     std::pair<int, int> get_pos_pix() const { return board.m_to_pix(curr_pos_m); }
-    std::pair<int, int> get_curr_cell() const { 
-        return board.m_to_cell(curr_pos_m); 
+    std::pair<int, int> get_curr_cell() const
+    {
+        return board.m_to_cell(curr_pos_m);
     }
 
     int get_start_ms() const { return start_ms; }
@@ -52,15 +53,23 @@ public:
     using BasePhysics::BasePhysics;
     void reset(const Command &cmd) override
     {
+        std::cout << "[IDLE RESET] Command: " << cmd.type << " with " << cmd.params.size() << " params" << std::endl;
+        if (!cmd.params.empty())
+        {
+            std::cout << "[IDLE RESET] Setting position to: (" << cmd.params[0].first << "," << cmd.params[0].second << ")" << std::endl;
+        }
+
         if (cmd.params.empty())
         {
-            start_cell = end_cell = {0, 0};
+            std::cout << "[IDLE RESET] No params - keeping current position" << std::endl;
+            // השאר הכל כמו שהוא
         }
         else
         {
             start_cell = end_cell = cmd.params[0];
+            curr_pos_m = board.cell_to_m(start_cell);
+            std::cout << "[IDLE RESET] New curr_pos_m: (" << curr_pos_m.first << "," << curr_pos_m.second << ")" << std::endl;
         }
-        curr_pos_m = board.cell_to_m(start_cell);
         start_ms = cmd.timestamp;
     }
     std::shared_ptr<Command> update(int) override { return nullptr; }
@@ -78,20 +87,31 @@ public:
 
     void reset(const Command &cmd) override
     {
-        if (cmd.params.size() < 2) {
+        std::cout << "[MOVE RESET] Command: " << cmd.type << " with " << cmd.params.size() << " params" << std::endl;
+        if (cmd.params.size() >= 2)
+        {
+            std::cout << "[MOVE RESET] From: (" << cmd.params[0].first << "," << cmd.params[0].second
+                      << ") To: (" << cmd.params[1].first << "," << cmd.params[1].second << ")" << std::endl;
+        }
+
+        if (cmd.params.size() < 2)
+        {
             start_cell = end_cell = {0, 0};
-        } else {
+            std::cout << "[MOVE RESET] ERROR: Not enough params, defaulting to (0,0)" << std::endl;
+        }
+        else
+        {
             start_cell = cmd.params[0];
             end_cell = cmd.params[1];
         }
         curr_pos_m = board.cell_to_m(start_cell);
         start_ms = cmd.timestamp;
-        
+
         std::pair<double, double> start_pos = board.cell_to_m(start_cell);
         std::pair<double, double> end_pos = board.cell_to_m(end_cell);
         movement_vec = {end_pos.first - start_pos.first, end_pos.second - start_pos.second};
         movement_len = std::hypot(movement_vec.first, movement_vec.second);
-        double speed_m_s = param; // 1 cell == 1m with default cell_size_m
+        double speed_m_s = param;
         duration_s = movement_len / speed_m_s;
     }
 
@@ -101,7 +121,11 @@ public:
         if (seconds >= duration_s)
         {
             curr_pos_m = board.cell_to_m(end_cell);
-            return std::make_shared<Command>(Command{now_ms, "", "done", {}});
+            start_cell = end_cell;
+            std::cout << "[MOVE UPDATE] Movement DONE! Sending done command with end_cell: ("
+                      << end_cell.first << "," << end_cell.second << ")" << std::endl;
+
+            return std::make_shared<Command>(Command{now_ms, "", "done", {end_cell}});
         }
         double ratio = seconds / duration_s;
         curr_pos_m = {board.cell_to_m(start_cell).first + movement_vec.first * ratio,
@@ -128,12 +152,16 @@ public:
 
     void reset(const Command &cmd) override
     {
-        if (cmd.params.empty()) {
-            start_cell = end_cell = {0, 0};
-        } else {
-            start_cell = end_cell = cmd.params[0];
+        if (cmd.params.empty())
+        {
+            // אל תשנה את המיקום הנוכחי אם אין פרמטרים
+            // start_cell = end_cell = {0, 0};
         }
-        curr_pos_m = board.cell_to_m(start_cell);
+        else
+        {
+            start_cell = end_cell = cmd.params[0];
+            curr_pos_m = board.cell_to_m(start_cell);
+        }
         start_ms = cmd.timestamp;
     }
 
@@ -142,7 +170,7 @@ public:
         double seconds = (now_ms - start_ms) / 1000.0;
         if (seconds >= param)
         {
-            return std::make_shared<Command>(Command{now_ms, "", "done", {}});
+            return std::make_shared<Command>(Command{now_ms, "", "done", {end_cell}});
         }
         return nullptr;
     }
