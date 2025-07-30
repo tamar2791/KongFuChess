@@ -10,6 +10,7 @@
 #include <unordered_set>
 #include "img/Img.hpp"
 #include "img/ImgFactory.hpp"
+#include "img/OpenCvImg.hpp"
 #include <fstream>
 #include <sstream>
 #include "GraphicsFactory.hpp"
@@ -160,6 +161,16 @@ inline void Game::start_user_input_thread()
         user_input_queue, input_mutex, *kp1, 1);
     kb_prod_2 = std::make_shared<KeyboardProducer>(
         user_input_queue, input_mutex, *kp2, 2);
+    
+    // קשר בין ה-producers
+    kb_prod_1->set_other_player(kb_prod_2);
+    kb_prod_2->set_other_player(kb_prod_1);
+    
+    // הגדרת handler למקשים מ-OpenCV
+    set_global_key_handler([this](int key) {
+        std::cout << "[DEBUG] Global key handler received: " << key << std::endl;
+        kb_prod_1->handle_opencv_key(key);
+    });
 
     kb_prod_1->start(); // או אפשר להריץ ב־ctor אם זה אוטומטי
     kb_prod_2->start();

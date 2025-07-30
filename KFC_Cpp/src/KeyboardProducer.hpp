@@ -32,6 +32,9 @@ private:
     // משתנים עבור דמוי keyboard events (לטסטים)
     std::queue<std::string> simulated_keys;
     std::mutex sim_mutex;
+    
+    // שיתוף בין ה-producers
+    std::shared_ptr<KeyboardProducer> other_player_producer;
 
 public:
     // Constructor שמתאים למה שמשתמש במחלקת Game
@@ -81,24 +84,54 @@ public:
         std::lock_guard<std::mutex> lock(sim_mutex);
         simulated_keys.push(key);
     }
+    
+    // פונקציה להגדרת השחקן השני
+    void set_other_player(std::shared_ptr<KeyboardProducer> other) {
+        this->other_player_producer = other;
+    }
+    
+    // פונקציה ציבורית לטיפול במקשים
+    void handle_key_event_internal(const std::string& key) {
+        std::cout << "[DEBUG] Player " << player << " processing key: " << key << std::endl;
+        std::string action = processor.process_key(key);
+        std::cout << "[DEBUG] Player " << player << " action: " << action << std::endl;
+        
+        if (action != "select" && action != "jump") {
+            std::cout << "[DEBUG] Player " << player << " ignoring action: " << action << std::endl;
+            return;
+        }
+        
+        auto cell = processor.get_cursor();
+        std::cout << "[DEBUG] Player " << player << " cursor at: (" << cell.first << "," << cell.second << ")" << std::endl;
+        
+        if (action == "select") {
+            handle_select_action(cell);
+        } else if (action == "jump") {
+            handle_jump_action(cell);
+        }
+    }
+    
+    // פונקציה לטיפול במקשים מ-OpenCV
+    void handle_opencv_key(int key) {
+        std::string key_str = convert_opencv_key_to_string(key);
+        if (!key_str.empty()) {
+            std::cout << "[DEBUG] OpenCV key converted: " << key_str << std::endl;
+            distribute_key_to_players(key_str);
+        }
+    }
 
 private:
     void run() {
+        std::cout << "[DEBUG] KeyboardProducer Player " << player << " started!" << std::endl;
         while (running.load()) {
             // בדוק אם יש מקשים מדומים
             process_simulated_keys();
             
-            // קלט מקלדת אמיתי באמצעות OpenCV
-            int key = cv::waitKey(1) & 0xFF;
-            if (key != 255) { // 255 = no key pressed
-                std::string key_str = convert_opencv_key_to_string(key);
-                if (!key_str.empty()) {
-                    handle_key_event_internal(key_str);
-                }
-            }
+            // המקשים מגיעים מ-OpenCV דרך handle_opencv_key
             
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
         }
+        std::cout << "[DEBUG] KeyboardProducer Player " << player << " stopped!" << std::endl;
     }
 
     void process_simulated_keys() {
@@ -108,22 +141,6 @@ private:
             simulated_keys.pop();
             // עבד את המקש ללא נעילה (כי כבר יש לנו נעילה)
             handle_key_event_internal(key);
-        }
-    }
-
-    void handle_key_event_internal(const std::string& key) {
-        std::string action = processor.process_key(key);
-        
-        if (action != "select" && action != "jump") {
-            return;
-        }
-        
-        auto cell = processor.get_cursor();
-        
-        if (action == "select") {
-            handle_select_action(cell);
-        } else if (action == "jump") {
-            handle_jump_action(cell);
         }
     }
 
@@ -228,17 +245,29 @@ private:
     }
 
     std::string convert_opencv_key_to_string(int key) {
+        // הדפס את הערך לדיבוג
+        if (key != 255) {
+            std::cout << "[DEBUG] Key pressed: " << key << std::endl;
+        }
+        
         switch (key) {
             case 27: return "esc";
             case 13: return "enter";
             case 32: return " ";
             case 43: return "+";
             case 45: return "-";
-            // חצי כיוון
-            case 0: return "up";    // חץ עליון
-            case 1: return "down";  // חץ תחתון
-            case 2: return "left";  // חץ שמאל
-            case 3: return "right"; // חץ ימין
+            // מקשי חצים מורחבים (1000 + קוד המקש)
+            case 1072: return "up";    // 1000 + 72 = חץ עליון
+            case 1080: return "down";  // 1000 + 80 = חץ תחתון
+            case 1075: return "left";  // 1000 + 75 = חץ שמאל
+            case 1077: return "right"; // 1000 + 77 = חץ ימין
+            case 0: return "unknown_arrow"; // מקש חץ לא מזוהה
+
+            case 249: return "a";  // ראינו 249 בפלט
+            case 227: return "s";  // ראינו 227 בפלט
+            case 226: return "d";  // ראינו 226 בפלט
+            case 39: return "w";   // ראינו 39 בפלט
+            case 235: return "f";  // ראינו 235 בפלט
             // אותיות רגילות
             default:
                 if (key >= 'a' && key <= 'z') {
@@ -247,6 +276,8 @@ private:
                 if (key >= 'A' && key <= 'Z') {
                     return std::string(1, (char)(key + 32)); // המרה לאות קטנה
                 }
+                // הדפס מקשים לא מוכרים
+                std::cout << "[DEBUG] Unknown key code: " << key << std::endl;
                 return "";
         }
     }
@@ -256,5 +287,25 @@ private:
         auto now = std::chrono::steady_clock::now();
         auto duration = now - start_time;
         return static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(duration).count());
+    }
+    
+    void distribute_key_to_players(const std::string& key) {
+        // בדוק אילו מקשים שייכים לשחקן 1
+        if (key == "up" || key == "down" || key == "left" || key == "right" || 
+            key == "enter" || key == "+") {
+            std::cout << "[DEBUG] Key '" << key << "' for Player 1" << std::endl;
+            handle_key_event_internal(key);
+        }
+        // בדוק אילו מקשים שייכים לשחקן 2
+        else if (key == "w" || key == "s" || key == "a" || key == "d" || 
+                 key == "f" || key == "g") {
+            std::cout << "[DEBUG] Key '" << key << "' for Player 2" << std::endl;
+            if (other_player_producer) {
+                other_player_producer->handle_key_event_internal(key);
+            }
+        }
+        else {
+            std::cout << "[DEBUG] Unknown key: " << key << std::endl;
+        }
     }
 };
