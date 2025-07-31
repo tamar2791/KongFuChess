@@ -70,6 +70,13 @@ public:
         }
     }
 
+    // פונקציה לקבלת מיקום הסמן האפקטיבי
+    std::pair<int, int> get_effective_cursor()
+    {
+        // כל השחקנים משתמשים בסמן רגיל
+        return processor.get_cursor();
+    }
+
     // פונקציה ציבורית לטיפול באירוע מקלדת - תוכל לקרוא לה מבחוץ
     void handle_key_event(const std::string &key)
     {
@@ -81,7 +88,7 @@ public:
             return;
         }
 
-        auto cell = processor.get_cursor();
+        auto cell = get_effective_cursor();
 
         if (action == "select")
         {
@@ -119,7 +126,7 @@ public:
         std::string action = processor.process_key(key);
         std::cout << "[DEBUG] Player " << player << " action: " << action << std::endl;
 
-        auto cell = processor.get_cursor();
+        auto cell = get_effective_cursor();
 
         if (action != "select" && action != "jump")
         {
@@ -356,17 +363,7 @@ private:
             return "+";
         case 45:
             return "-";
-        // מקשי חצים מורחבים (1000 + קוד המקש)
-        case 1072:
-            return "up"; // 1000 + 72 = חץ עליון
-        case 1080:
-            return "down"; // 1000 + 80 = חץ תחתון
-        case 1075:
-            return "left"; // 1000 + 75 = חץ שמאל
-        case 1077:
-            return "right"; // 1000 + 77 = חץ ימין
-        case 0:
-            return "unknown_arrow"; // מקש חץ לא מזוהה
+        // מקשי IJKL כבר מטופלים בחלק הרגיל של האותיות
 
         case 249:
             return "a"; // ראינו 249 בפלט
@@ -378,6 +375,15 @@ private:
             return "w"; // ראינו 39 בפלט
         case 235:
             return "f"; // ראינו 235 בפלט
+        // מקשי IJKL במצב עברית
+        case 239: // י במקום I
+            return "i";
+        case 236: // כ במקום K  
+            return "k";
+        case 234: // ל במקום L
+            return "l";
+        case 231: // ג במקום J
+            return "j";
         // אותיות רגילות
         default:
             if (key >= 'a' && key <= 'z')
@@ -388,8 +394,11 @@ private:
             {
                 return std::string(1, (char)(key + 32)); // המרה לאות קטנה
             }
+
             // הדפס מקשים לא מוכרים
-            std::cout << "[DEBUG] Unknown key code: " << key << std::endl;
+            if (key != 255 && key != -1) {
+                std::cout << "[DEBUG] Unknown key code: " << key << std::endl;
+            }
             return "";
         }
     }
@@ -404,8 +413,8 @@ private:
 
     void distribute_key_to_players(const std::string &key)
     {
-        // בדוק אילו מקשים שייכים לשחקן 1
-        if (key == "up" || key == "down" || key == "left" || key == "right" ||
+        // בדוק אילו מקשים שייכים לשחקן 1 (IJKL במקום חיצים)
+        if (key == "i" || key == "k" || key == "j" || key == "l" ||
             key == "enter" || key == "+")
         {
             std::cout << "[DEBUG] Key '" << key << "' for Player 1" << std::endl;

@@ -141,7 +141,7 @@ inline void Game::run(int num_iterations, bool is_with_graphics)
 inline void Game::start_user_input_thread()
 {
     std::unordered_map<std::string, std::string> p1_map = {
-        {"up", "up"}, {"down", "down"}, {"left", "left"}, {"right", "right"}, {"enter", "select"}, {"+", "jump"}};
+        {"i", "up"}, {"k", "down"}, {"j", "left"}, {"l", "right"}, {"enter", "select"}, {"+", "jump"}};
 
     // player 2 keymap
     std::unordered_map<std::string, std::string> p2_map = {
@@ -149,7 +149,9 @@ inline void Game::start_user_input_thread()
     kp1 = std::make_shared<KeyboardProcessor>(board.H_cells, board.W_cells, p1_map);
     kp2 = std::make_shared<KeyboardProcessor>(board.H_cells, board.W_cells, p2_map);
     
-    // שני השחקנים מתחילים ב-(0,0) כמו בפייתון
+    // הגדרת מיקום התחלתי לשחקן 1 ב-(7,0)
+    kp1->set_cursor(7, 0);
+    // שחקן 2 נשאר במיקום הברירת מחדל (0,0)
 
     // start the keyboard producers (with player number)
     kb_prod_1 = std::make_shared<KeyboardProducer>(
@@ -437,16 +439,22 @@ inline void Game::_draw()
             PlayerData{1, kp1, &last_cursor1},
             PlayerData{2, kp2, &last_cursor2}};
 
+        // עדכון מיקום הסמן לשחקן 1
+        if (kp1) {
+            // שחקן 1 משתמש בסמן רגיל
+            last_cursor1 = kp1->get_cursor();
+        }
+        
         for (const auto &data : players)
         {
             int player = data.player;
             std::shared_ptr<KeyboardProcessor> kp = data.kp;
-            std::pair<int, int> *last = data.last_cursor; // שינוי כאן - pointer רגיל
+            std::pair<int, int> *last = data.last_cursor;
 
-            // קבלת מיקום הסמן
-            std::pair<int, int> pos = kp->get_cursor();
-            int r = pos.first;
-            int c = pos.second;
+            // קבלת מיקום הסמן - כל השחקנים משתמשים בסמן רגיל
+            std::pair<int, int> cursor_pos = kp->get_cursor();
+            int r = cursor_pos.first;
+            int c = cursor_pos.second;
 
             // חישוב גבולות המלבן
             int y1 = r * board.cell_H_pix;
@@ -462,15 +470,13 @@ inline void Game::_draw()
             int width = x2 - x1 + 1;
             int height = y2 - y1 + 1;
 
-            // ציור המלבן
+            // ציור המלבן הרגיל
             display_board.img->draw_rect(x1, y1, width, height, color);
 
-            // הדפסת לוג רק אם הסמן השתנה
-            if (*last != pos)
-            {
-                // logger.debug("Marker P%d moved to (%d, %d)", player, r, c);
-                *last = pos;
-            }
+
+
+            // עדכון מיקום הסמן
+            *last = {r, c};
         }
     }
     display_board.show();

@@ -38,6 +38,14 @@ public:
         return {cursor[0], cursor[1]};
     }
 
+    void set_cursor(int row, int col) {
+        std::lock_guard<std::mutex> lock(mtx);
+        if (row >= 0 && row < rows && col >= 0 && col < cols) {
+            cursor[0] = row;
+            cursor[1] = col;
+        }
+    }
+
 private:
     int rows;
     int cols;
