@@ -240,6 +240,21 @@ inline void Game::process_input(const Command &cmd)
     }
     
     auto piece = it->second;
+    
+    // Check for same-color piece collision before processing move
+    if (cmd.type == "move" && cmd.params.size() >= 2) {
+        auto to = cmd.params[1];
+        auto dest_it = pos.find(to);
+        if (dest_it != pos.end() && !dest_it->second.empty()) {
+            for (const auto& dest_piece : dest_it->second) {
+                if (dest_piece->get_color() == piece->get_color()) {
+                    std::cout << "[GAME] Cannot move to cell with same color piece" << std::endl;
+                    return;
+                }
+            }
+        }
+    }
+    
     auto old_cell = piece->current_cell();
     std::cout << "[GAME] Piece " << cmd.piece_id << " before command at: (" << old_cell.first << "," << old_cell.second << ")" << std::endl;
     
@@ -262,16 +277,22 @@ inline void Game::resolve_collisions()
         const auto &plist = kv.second;
         if (plist.size() < 2)
             continue;
+        
+        // Find the winner (piece that arrived first - earliest start_ms)
         auto winner = *std::max_element(plist.begin(), plist.end(),
                                         [](const PiecePtr &a, const PiecePtr &b)
                                         {
                                             return a->state->physics->get_start_ms() < b->state->physics->get_start_ms();
                                         });
+        
+        // Check all other pieces for capture
         for (const auto &p : plist)
         {
             if (p == winner)
                 continue;
-            if (p->state->can_be_captured())
+            
+            // Only capture if different colors and piece can be captured
+            if (p->get_color() != winner->get_color() && p->state->can_be_captured())
             {
                 to_remove.push_back(p);
             }

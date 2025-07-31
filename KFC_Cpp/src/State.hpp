@@ -57,6 +57,8 @@ public:
                         occupied_cells.insert(kv.first);
                     }
                 }
+                
+                
                 bool valid = moves->is_valid(cmd.params[0], cmd.params[1], occupied_cells, physics->is_need_clear_path());
                 std::cout << "[STATE] Move validation result: " << (valid ? "VALID" : "INVALID") << std::endl;
                 if(!valid) {

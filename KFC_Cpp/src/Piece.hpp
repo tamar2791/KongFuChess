@@ -46,6 +46,7 @@ public:
 		state = state->update(now_ms,c);
 	}
 
+	char get_color() const { return id[1]; }
 	bool is_movement_blocker() const { return state->physics->is_movement_blocker(); }
 	void draw_on_board(Board& board, int now_ms) const {
 		state->graphics->update(now_ms);
