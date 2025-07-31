@@ -282,9 +282,34 @@ private:
 
     void handle_jump_action(const std::pair<int, int> &cell)
     {
-        if (!selected_id.empty())
+        if (selected_id.empty())
         {
-            // יצירת פקודת קפיצה
+            // אם אין כלי נבחר, בחר כלי במיקום הנוכחי ובצע קפיצה מיד
+            PiecePtr piece = find_piece_at(cell);
+            if (!piece)
+            {
+                std::cout << "[WARN] Player " << player << " - No piece to jump at ("
+                          << cell.first << "," << cell.second << ")" << std::endl;
+                return;
+            }
+            
+            // בצע קפיצה מיד למיקום הנוכחי
+            std::cout << "[KEY] Player " << player << " jumping " << piece->id << " at ("
+                      << cell.first << "," << cell.second << ")" << std::endl;
+            
+            selected_id = piece->id;
+            selected_cell = cell;
+            create_jump_command(cell, cell); // קפיצה במקום
+            
+            selected_id = "";
+            selected_cell = {-1, -1};
+        }
+        else
+        {
+            // יש כלי נבחר - בצע קפיצה למיקום הנוכחי
+            std::cout << "[KEY] Player " << player << " jumping " << selected_id << " from ("
+                      << selected_cell.first << "," << selected_cell.second << ") to ("
+                      << cell.first << "," << cell.second << ")" << std::endl;
             create_jump_command(selected_cell, cell);
 
             selected_id = "";
@@ -384,6 +409,8 @@ private:
             return "l";
         case 231: // ג במקום J
             return "j";
+        case 242: // ע במצב עברית (במקום G)
+            return "g";
         // אותיות רגילות
         default:
             if (key >= 'a' && key <= 'z')
