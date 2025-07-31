@@ -260,7 +260,11 @@ inline void Game::process_input(const Command &cmd)
     auto old_cell = piece->current_cell();
     std::cout << "[GAME] Piece " << cmd.piece_id << " before command at: (" << old_cell.first << "," << old_cell.second << ")" << std::endl;
     
-    piece->on_command(cmd, pos);
+    // עדכון timestamp לזמן הנוכחי של המשחק
+    Command updated_cmd = cmd;
+    updated_cmd.timestamp = game_time_ms();
+    std::cout << "[GAME] Updated command timestamp to: " << updated_cmd.timestamp << std::endl;
+    piece->on_command(updated_cmd, pos);
     
     auto new_cell = piece->current_cell();
     std::cout << "[GAME] Piece " << cmd.piece_id << " after command at: (" << new_cell.first << "," << new_cell.second << ")" << std::endl;

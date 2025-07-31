@@ -337,8 +337,10 @@ private:
         std::pair<int, int> to_coords = to;
 
         std::vector<std::pair<int, int>> move_params = {from_coords, to_coords};
+        int current_time = get_current_time_ms();
+        std::cout << "[DEBUG] Creating move command with timestamp: " << current_time << std::endl;
         Command cmd{
-            get_current_time_ms(),
+            current_time,
             selected_id,
             "move",
             move_params};

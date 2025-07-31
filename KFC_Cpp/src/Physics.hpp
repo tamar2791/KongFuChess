@@ -113,23 +113,32 @@ public:
         movement_len = std::hypot(movement_vec.first, movement_vec.second);
         double speed_m_s = param;
         duration_s = movement_len / speed_m_s;
+        
+        std::cout << "[MOVE RESET] start_pos: (" << start_pos.first << "," << start_pos.second << ")" << std::endl;
+        std::cout << "[MOVE RESET] end_pos: (" << end_pos.first << "," << end_pos.second << ")" << std::endl;
+        std::cout << "[MOVE RESET] movement_len: " << movement_len << ", speed: " << speed_m_s << ", duration_s: " << duration_s << std::endl;
+        std::cout << "[MOVE RESET] start_ms: " << start_ms << std::endl;
     }
 
     std::shared_ptr<Command> update(int now_ms) override
     {
         double seconds = (now_ms - start_ms) / 1000.0;
+        double ratio = seconds / duration_s;
+        
+        std::cout << "[MOVE UPDATE] seconds=" << seconds << ", duration_s=" << duration_s << ", ratio=" << ratio << std::endl;
+        
         if (seconds >= duration_s)
         {
             curr_pos_m = board.cell_to_m(end_cell);
             start_cell = end_cell;
-            std::cout << "[MOVE UPDATE] Movement DONE! Sending done command with end_cell: ("
-                      << end_cell.first << "," << end_cell.second << ")" << std::endl;
-
+            std::cout << "[MOVE UPDATE] Movement DONE! Final position: (" << curr_pos_m.first << "," << curr_pos_m.second << ")" << std::endl;
             return std::make_shared<Command>(Command{now_ms, "", "done", {end_cell}});
         }
-        double ratio = seconds / duration_s;
+        
         curr_pos_m = {board.cell_to_m(start_cell).first + movement_vec.first * ratio,
                       board.cell_to_m(start_cell).second + movement_vec.second * ratio};
+        
+        std::cout << "[MOVE UPDATE] Moving... position: (" << curr_pos_m.first << "," << curr_pos_m.second << ")" << std::endl;
         return nullptr;
     }
 
